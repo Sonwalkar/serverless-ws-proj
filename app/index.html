@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" >
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>socket.io</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.socket.io/socket.io-3.0.0.js"></script>
+    <script type="module" defer src ="app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+  </head>
+  <body>
+    <div class="header">
+      <ul></ul>
+      <div class = "joinRoom">
+        <input placeholder="room" id="room"/>
+        <button id="join">Join</button>
+      </div>
+    </div>
+    <div class ="window">
+      <div class="userList">
+      
+      </div>
+      <div class="chat">
+        <div class="actions">
+          <input placeholder="Type Something..." id="message" class="message"/>
+          <button id="send" class="send">send</button>
+        </div>
+
+        <div class="activeChat">
+        </div>
+      </div>
+    </div>
+    
+  </body>
+</html>

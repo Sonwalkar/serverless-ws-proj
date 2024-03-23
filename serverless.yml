@@ -1,0 +1,46 @@
+service: serverlessWSproj
+frameworkVersion: "3"
+
+# Cloud Provider
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage ,'dev'}
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}-ConnectionsAndChats
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "dynamodb:*"
+          Resource: "*"
+
+# Plugins
+plugins:
+  - serverless-esbuild
+
+custom:
+  esbuild:
+    exclude:
+      [
+        "@aws-sdk/client-apigatewaymanagementapi",
+        "@aws-sdk/client-dynamodb",
+        "@aws-sdk/lib-dynamodb",
+      ]
+
+resources:
+  Resources:
+    ConnectionsAndChats: ${file(./resources/ConnectionsAndChats.yml)}
+
+functions:
+  WSHandler:
+    handler: src/lambdas/index.handler
+    logRetentionInDays: 1
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $disconnect
+      - websocket:
+          route: $default
