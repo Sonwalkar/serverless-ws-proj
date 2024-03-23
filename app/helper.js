@@ -72,14 +72,14 @@ const addUserOrGroupTab = (userName, userId, tabStatus) => {
  * room name, and the corresponding value is an array of socket IDs of the clients in that room.
  * @param activeUserTabDetails - activeUserTabDetails is an object that contains the details of the
  * currently active user tab. It has the following properties:
- * ! For now user groups are not implemented so the customRooms parameter is commented out.
+ * ! customRooms cannot be used right now as it is commented out.
  */
-const showUsersAndGroup = (clients, customRooms, activeUserTabDetails) => {
+const showUsersAndGroup = (clients, activeUserTabDetails = "") => {
   // Show all the users and make them inactive except activeUserTabDetails.
   for (const client of clients) {
     let tabStatus = "inactive";
 
-    if (activeUserTabDetails.value === client.socketId) {
+    if (activeUserTabDetails?.value === client.socketId) {
       tabStatus = "active";
     }
 

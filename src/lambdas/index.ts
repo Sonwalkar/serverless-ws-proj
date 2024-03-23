@@ -1,4 +1,4 @@
-import { postToConnection } from "./apiGatewayCommands";
+import { deleteConnection, postToConnection } from "./apiGatewayCommands";
 import {
   addNewConnectionCommand,
   getAllActiveConnectionCommand,
@@ -40,26 +40,34 @@ module.exports.handler = async (event) => {
       console.log("Unknown route", event.requestContext.routeKey);
 
       const body: {
-        reqType: "getConnectionId" | "sendMessage";
+        reqType: "getConnectionIds" | "sendMessage" | "disconnect";
         message: string;
         to: string;
       } = JSON.parse(event.body);
 
       switch (body.reqType) {
-        case "getConnectionId": {
+        case "getConnectionIds": {
           // add the connectionId to the DynamoDB table
           const dbResponse = await addNewConnectionCommand(connectionId);
           console.log("🚀  ~ dbResponse:", dbResponse);
 
           // get all the connections from the DynamoDB table
-          const activeConnectionId = await getAllActiveConnectionCommand();
+          const activeConnectionId = (
+            await getAllActiveConnectionCommand()
+          )?.Items?.map((item) => {
+            return {
+              socketId: item.cId,
+              clientName: item?.clientName ?? item.cId,
+            };
+          });
+
           console.log(
             "🚀 ~ module.exports.handler= ~ activeConnectionId:",
             activeConnectionId
           );
 
           const response = {
-            reqType: "getConnectionId",
+            reqType: "getConnectionIds",
             connectionId,
             activeConnectionId,
           };
@@ -68,9 +76,18 @@ module.exports.handler = async (event) => {
           return sendToOne(callbackUrlForAWS, connectionId, response);
         }
         case "sendMessage": {
-          return sendToOne(callbackUrlForAWS, body.to, {
+          const response = {
+            reqType: "sendMessage",
+            from: connectionId,
             message: body.message,
-          });
+          };
+          return sendToOne(callbackUrlForAWS, body.to, response);
+        }
+        case "disconnect": {
+          await deleteConnection(callbackUrlForAWS, connectionId);
+          return {
+            statusCode: 200,
+          };
         }
         default:
           return {

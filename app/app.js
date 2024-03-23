@@ -5,7 +5,7 @@ import {
 } from "./helper.js";
 
 const socket = new WebSocket(
-  "wss://yw1feigqrj.execute-api.us-east-1.amazonaws.com/dev"
+  "wss://ypu0hgxnxf.execute-api.us-east-1.amazonaws.com/dev"
 );
 
 // on connect show the socket id in the top bar.
@@ -20,9 +20,11 @@ socket.addEventListener("open", async (event) => {
   // };
 
   let connectionId = "";
+  let activeConnectionId = [];
+  const activeUserTabDetails = "";
   socket.send(
     JSON.stringify({
-      reqType: "getConnectionId",
+      reqType: "getConnectionIds",
       message: "",
       to: "",
     })
@@ -33,15 +35,45 @@ socket.addEventListener("open", async (event) => {
     const body = JSON.parse(event.data);
     console.log("🚀 ~ socket.addEventListener ~ body:", body);
     switch (body.reqType) {
-      case "getConnectionId":
+      case "getConnectionIds":
         connectionId = body.connectionId;
+        activeConnectionId = body.activeConnectionId;
+
         showClientIdInHeader(connectionId);
+
+        activeUserTabDetails = removeAllUsersAndGroupFromUI();
+
+        showUsersAndGroup(activeConnectionId, activeUserTabDetails);
         break;
       case "getActiveConnectionId":
         console.log("getActiveConnectionId: ", body);
         break;
       case "sendMessage":
         console.log("sendMessage: ", body);
+        if (
+          document.querySelector(".window .userList .active").dataset.value ===
+          body.from
+        ) {
+          if (body.from === connectionId) {
+            const fromOtherDiv = document.createElement("div");
+            fromOtherDiv.className = "fromYou";
+            const div = document.createElement("div");
+            div.innerText = body.message;
+            fromOtherDiv.appendChild(div);
+            document
+              .querySelector(".window .chat .activeChat")
+              .appendChild(fromOtherDiv);
+          } else {
+            const fromOtherDiv = document.createElement("div");
+            fromOtherDiv.className = "fromOther";
+            const div = document.createElement("div");
+            div.innerText = body.message;
+            fromOtherDiv.appendChild(div);
+            document
+              .querySelector(".window .chat .activeChat")
+              .appendChild(fromOtherDiv);
+          }
+        }
         break;
       default:
         console.log("default: ", body);
@@ -49,18 +81,73 @@ socket.addEventListener("open", async (event) => {
     }
   });
 
+  document
+    .querySelector("#refreshConnections")
+    .addEventListener("click", () => {
+      socket.send(
+        JSON.stringify({
+          reqType: "getConnectionIds",
+          message: "",
+          to: "",
+        })
+      );
+    });
+
   socket.addEventListener("close", (event) => {
     console.log("Message from server ", JSON.parse(event.data));
   });
 });
 
-socket.addEventListener("close", (event) => {
-  console.log("Message from server ", JSON.parse(event.data));
+// it selects client(socketId) to make active and inactive look
+document.querySelector(".window .userList").addEventListener("click", (e) => {
+  const activeDiv = document.querySelector(".window .userList .active");
+  if (activeDiv) {
+    activeDiv.classList.remove("active");
+    activeDiv.classList.add("inactive");
+  }
+  e.target.classList.add("active");
+  e.target.classList.remove("inactive");
+
+  // const otherClientId = document.querySelector(".window .userList .active")
+  //   .dataset.value;
+
+  // socket.emit("activeRoomSwitch", socket.id, otherClientId); // ! paused for loading chat history
+});
+
+document.querySelector("#send").addEventListener("click", () => {
+  const text = document.querySelector("#message").value;
+  const room = document.querySelector(".window .userList .active").dataset
+    .value;
+
+  // add message to chat window as sender
+  const fromOtherDiv = document.createElement("div");
+  fromOtherDiv.className = "fromYou";
+  const div = document.createElement("div");
+  div.innerText = text;
+  fromOtherDiv.appendChild(div);
+  document.querySelector(".window .chat .activeChat").appendChild(fromOtherDiv);
+
+  console.log("ele", document.querySelector(".window .userList .active"));
+  console.log("room: ", room);
+
+  socket.send(
+    JSON.stringify({
+      reqType: "sendMessage",
+      message: text,
+      to: room,
+    })
+  );
+  document.querySelector("#message").value = "";
 });
 
 // On tab or window close disconnect the socket connection.
 window.addEventListener("beforeunload", (event) => {
   event.preventDefault();
+  socket.send(
+    JSON.stringify({
+      reqType: "disconnect",
+    })
+  );
   event.returnValue = "";
 });
 
@@ -128,22 +215,6 @@ socket.on("message", (text) => {
   }
 });
 
-// it selects client(socketId) to make active and inactive look
-document.querySelector(".window .userList").addEventListener("click", (e) => {
-  const activeDiv = document.querySelector(".window .userList .active");
-  if (activeDiv) {
-    activeDiv.classList.remove("active");
-    activeDiv.classList.add("inactive");
-  }
-  e.target.classList.add("active");
-  e.target.classList.remove("inactive");
-
-  const otherClientId = document.querySelector(".window .userList .active")
-    .dataset.value;
-
-  socket.emit("activeRoomSwitch", socket.id, otherClientId);
-});
-
 socket.on("activeRoomChatOnSwitch", (chatHistory) => {
   console.log("chatHistory: ", chatHistory);
 
@@ -174,25 +245,6 @@ socket.on("activeRoomChatOnSwitch", (chatHistory) => {
       activeChatDiv.appendChild(fromOtherDiv);
     }
   }
-});
-
-document.querySelector("#send").addEventListener("click", () => {
-  const text = document.querySelector("#message").value;
-  const room = document.querySelector(".window .userList .active").dataset
-    .value;
-
-  // add message to chat window as sender
-  const fromOtherDiv = document.createElement("div");
-  fromOtherDiv.className = "fromYou";
-  const div = document.createElement("div");
-  div.innerText = text;
-  fromOtherDiv.appendChild(div);
-  document.querySelector(".window .chat .activeChat").appendChild(fromOtherDiv);
-
-  console.log("ele", document.querySelector(".window .userList .active"));
-  console.log("room: ", room);
-  socket.emit("message", text, room);
-  document.querySelector("#message").value = "";
 });
 
 document.querySelector("#join").addEventListener("click", () => {
