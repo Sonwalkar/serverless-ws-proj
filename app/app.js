@@ -21,7 +21,7 @@ socket.addEventListener("open", async (event) => {
 
   let connectionId = "";
   let activeConnectionId = [];
-  const activeUserTabDetails = "";
+  let activeUserTabDetails = "";
   socket.send(
     JSON.stringify({
       reqType: "getConnectionIds",
